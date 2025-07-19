@@ -1,0 +1,179 @@
+---
+title: "Pangenome_Presence_Absence"
+author: "Sabrina Elkassas"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+**bold**
+<links> 
+
+## Load the req packages and data 
+```{r}
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(ggnewscale)
+library(patchwork)
+library(readr)
+
+#load the data
+df <- read.csv(file = "/Users/sabrinaelkassas/Downloads/Enceladus_pangenome_presence_absence.csv", header = TRUE)
+```
+
+## Presence/Absence plot
+
+```{r}
+#Factor ordering gene name
+View(df)
+unique(df$Gene.Function)
+unique(functions_y_list)
+
+functions_y_list <- 
+c("Sulfite reductase (NADPH) ", 
+"Sulfate adenylyltransferase",
+"Nitrite reductase (NADH) ",
+"Nitric oxide reductase", 
+"Periplasmic nitrate reductase", 
+"Nitrate reductase", 
+"Cytochrome bd oxidase", 
+"Cytochrome c oxidase (aa3-type)2", 
+"ATP-binding cassette, heavy metal transporter",
+"Tellurite resistance protein", 
+"ABC-type nickel/cobalt efflux system",   
+"Chromate transporter",
+"Arsenite efflux pump; arsenate reductase; arsenical resistance protein",
+" Mercuric resistance operon regulatory protein",    
+"multicopper oxidase; membrane fusion protein, copper/silver efflux system", 
+"ABC-type spermidine/putrescine transport system", 
+"catalase-peroxidase", 
+"Superoxide dismutase, Fe-Mn family", 
+"thioredoxin; thioredoxin-dependent peroxiredoxin",
+"ABC-type nitrate/sulfonate/bicarbonate transport system", 
+"Choline-glycine betaine transporter", 
+" ABC-type proline/glycine betaine transport system",    
+"molecular chaperone htpgx", 
+"chaperonin GroES",  
+"Molecular chaperone DnaK (HSP70)",  
+"ATP-dependent HslUV protease ATP-binding subunit",  
+"Ribosome-associated heat shock protein",  
+"ATP-dependent Clp protease, ATP-binding subunit ", 
+"Chaperonin GroEL (HSP60 family)",   
+"Cold shock protein",  
+"Cytochrome c oxidase (aa3-type)", 
+"F-type H+/Na+-transporting ATPase subunits",  
+"V-type H+-ATPase",    
+"multicomponent K+:H+ antiporter (Kef-type or Mnh-type antiporter system); Na+:H+ antiporter",
+"Carbonic anhydrase", 
+"Malic enzyme (NADP⁺-dependent)", 
+"Pyruvate carboxylase (biotin-dependent)",  
+"PEP carboxylase"
+)
+
+#Factor ordering functional subcategory (This is what I will use for the facet gridding)
+functions_facet_list <- c("CO2 assimilation (Heterotrophs)", "Environmental Stress Response", "Metabolism", "Anaplerotic CO₂ fixation", "High pH Adaptation", "Cold Shock", "Heat Shock", "Osmotic stress", "Oxidative Stress", "Heavy Metal Detoxification", "Aerobic respiration", "Nitrate Reduction", "Nitrite Reduction", "Sulfate Reduction", "Sulfite reduction")
+
+#Factor by genome name:
+sample_list <- c("Alishewanella agri",
+"Marinobactershengliensis",
+"Marinobacter vinifirmis",
+"Aliihoeflea_bin002_S3",
+"Aliihoeflea_bin004_S3",
+"Dietzia_maris_bin001_S3",
+"Stenotrophomonas_maltophilia_Z_bin003_S3",
+"Campylobacterales_UBA1877_Kmv14_bin001_S4")
+
+filtered_samples <- df %>% filter(Genome %in% sample_list) 
+filtered_samples$SAMPLE_ORDER <-factor(filtered_samples$Genome, levels = sample_list) 
+filtered_samples$FUNCTION_ORDER <- factor(filtered_samples$Gene.Function, levels = functions_y_list)
+
+# Side annotation: Functional Category and Subcategory
+annotation_df <- df %>%
+  select(`Gene.Function`, `Function.Category`, `Function.Subcategory`) %>%
+  distinct()
+
+annotation_long <- annotation_df %>%
+  pivot_longer(cols = c(`Function.Category`, `Function.Subcategory`), names_to = "Type", values_to = "Label")
+
+#making a discrete color vector
+cols <- c("0" = "white", "1" = "black")
+
+#make sure the Presence.Absence column is a factor, or else ggplot will read it in as a character and will require a continuous scale
+filtered_samples$Presence.Absence <- as.factor(filtered_samples$Presence.Absence)
+
+# Main heatmap
+heatmap <- ggplot(filtered_samples, aes(x = SAMPLE_ORDER, y = FUNCTION_ORDER, fill = Presence.Absence)) +
+  geom_tile(color = "grey80") +
+  scale_fill_manual(values = cols) + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        axis.text.y = element_text(size = 15),
+        panel.grid = element_blank())
+  
+heatmap
+#generate color palette for the functional categories (3)
+cols_functions <- c("CO2 assimilation (Heterotrophs)" = "#04644C", "Anaplerotic CO₂ fixation" = "#B4E4AC", "Environmental Stress Response" = "#248CE4", "Metabolism" = "#7C04FC","High pH Adaptation"= "#143C9C","Cold Shock" = "#0404F3", "Heat Shock" = "#04BCFC","Oxidative Stress" = "#8CCCF4", "Osmotic stress" = "#D4ECEC","Heavy Metal Detoxification" = "#84A4B4","Aerobic respiration" = "#C4B4E4", "Nitrate Reduction"= "#8C56B0","Nitrite Reduction" = "#B338A7","Sulfate Reduction"= "#55195F", "Sulfite reduction" = "#5C3C54")
+
+annotation_long_factored <- annotation_long %>% filter(Gene.Function %in% functions_y_list) 
+annotation_long_factored$GENE_ORDER <-factor(annotation_long_factored$Gene.Function, levels = functions_y_list) 
+
+# Annotation bar (left side of y-axis)
+annotation_plot <- ggplot(annotation_long_factored, aes(x = Type, y = `GENE_ORDER`, fill = Label)) +
+  geom_tile(color = "grey90") +
+  facet_grid(. ~ Type, scales = "free", space = "free") +
+  scale_fill_manual(values = cols_functions) +
+  theme_void() +
+  theme(strip.text = element_text(angle = 90, hjust = 0),
+        axis.text.x = element_text(size = 15),
+        legend.position = "bottom", 
+        axis.text.y = element_blank())
+
+annotation_plot
+# Combine using patchwork
+final_plot <- annotation_plot + heatmap + plot_layout(ncol = 2, widths = c(0.5, 4))
+print(final_plot)
+
+
+ggsave(filename = "/Users/sabrinaelkassas/Downloads/Enceladus_Pangenome_7.18.25.png", height = 25, width = 20)
+ggsave(filename = "/Users/sabrinaelkassas/Downloads/Enceladus_Pangenome_7.18.25.svg", height = 25, width = 20)
+
+
+
+
+
+require("scales")
+
+ggplot(data = filtered_samples) +
+  geom_raster(aes(x = SAMPLE_ORDER, y = FUNCTION_ORDER,
+  fill = scale(data$Presence.Absence, center = TRUE, scale = FALSE)), hjust=0, vjust=0) + 
+  labs(x = "Genome", y = "Function") + ggtitle("Presence/Absence Enceladus Pangenome") +
+  theme(legend.position = "right", legend.direction = "horizontal") + 
+  theme(strip.text.y = element_text(angle = 0)) + 
+  theme(legend.text = element_text(size=8)) + 
+  theme(legend.key.size = unit(1.5, 'cm')) +
+  theme(strip.background = element_rect(fill=NA)) + 
+  scale_fill_gradient(low = "white", high = "black", na.value = "red", ) +
+  # scale_color_viridis(discrete = FALSE, option = "D") +
+  # scale_fill_viridis(discrete = FALSE) +
+  theme(panel.background = element_rect(fill = NA), 
+        panel.grid = element_line(color="black")) + 
+  theme(panel.grid.major = element_line(colour = "black"),
+  panel.ontop = TRUE) + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  theme(axis.text.y = element_text(size=20)) + 
+  theme(axis.text.x = element_text(size=20)) +
+  coord_equal()
+
+ggsave(filename = "/Users/sabrinaelkassas/Downloads/30C_hm_Nov323.svg", height = 20, width = 20)
+ggsave(filename = "/Users/sabrinaelkassas/Downloads/30C_hm_Nov323.png", height = 20, width = 20)
+
+levels(annotation_long_factored$GENE_ORDER)
+```
+
