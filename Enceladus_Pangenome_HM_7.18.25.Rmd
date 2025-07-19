@@ -143,37 +143,5 @@ print(final_plot)
 
 ggsave(filename = "/Users/sabrinaelkassas/Downloads/Enceladus_Pangenome_7.18.25.png", height = 25, width = 20)
 ggsave(filename = "/Users/sabrinaelkassas/Downloads/Enceladus_Pangenome_7.18.25.svg", height = 25, width = 20)
-
-
-
-
-
-require("scales")
-
-ggplot(data = filtered_samples) +
-  geom_raster(aes(x = SAMPLE_ORDER, y = FUNCTION_ORDER,
-  fill = scale(data$Presence.Absence, center = TRUE, scale = FALSE)), hjust=0, vjust=0) + 
-  labs(x = "Genome", y = "Function") + ggtitle("Presence/Absence Enceladus Pangenome") +
-  theme(legend.position = "right", legend.direction = "horizontal") + 
-  theme(strip.text.y = element_text(angle = 0)) + 
-  theme(legend.text = element_text(size=8)) + 
-  theme(legend.key.size = unit(1.5, 'cm')) +
-  theme(strip.background = element_rect(fill=NA)) + 
-  scale_fill_gradient(low = "white", high = "black", na.value = "red", ) +
-  # scale_color_viridis(discrete = FALSE, option = "D") +
-  # scale_fill_viridis(discrete = FALSE) +
-  theme(panel.background = element_rect(fill = NA), 
-        panel.grid = element_line(color="black")) + 
-  theme(panel.grid.major = element_line(colour = "black"),
-  panel.ontop = TRUE) + 
-  theme(axis.text.x = element_text(angle = 90)) + 
-  theme(axis.text.y = element_text(size=20)) + 
-  theme(axis.text.x = element_text(size=20)) +
-  coord_equal()
-
-ggsave(filename = "/Users/sabrinaelkassas/Downloads/30C_hm_Nov323.svg", height = 20, width = 20)
-ggsave(filename = "/Users/sabrinaelkassas/Downloads/30C_hm_Nov323.png", height = 20, width = 20)
-
-levels(annotation_long_factored$GENE_ORDER)
 ```
 
